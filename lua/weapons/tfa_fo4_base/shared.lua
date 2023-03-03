@@ -142,7 +142,7 @@ function SWEP:WalkBob(pos, ang, breathIntensity, walkIntensity, rate, ftv)
 	ang:RotateAroundAxis(ri, -WalkPosLagged.y)
 	ang:RotateAroundAxis(up, WalkPosLagged.x)
 	ang:RotateAroundAxis(fw, WalkPos.x)
-
+	
 	--constant offset
 	pos:Add(riLocal * walkVec.x * flip_v)
 	pos:Add(fwLocal * walkVec.y)
@@ -212,6 +212,16 @@ function SWEP:SprintBob(pos, ang, intensity, origPos, origAng)
 
 	return pos, ang
 end
+
+	--viewmodel pullback remove
+SWEP.ViewModelPunchPitchMultiplier = 0
+SWEP.ViewModelPunchPitchMultiplier_IronSights = 0
+SWEP.ViewModelPunch_MaxVertialOffset = 0
+SWEP.ViewModelPunch_MaxVertialOffset_IronSights = 0
+SWEP.ViewModelPunch_VertialMultiplier = 0
+SWEP.ViewModelPunch_VertialMultiplier_IronSights = 0
+SWEP.ViewModelPunchYawMultiplier = 0
+SWEP.ViewModelPunchYawMultiplier_IronSights = 0
 
 local cv_customgunbob = GetConVar("cl_tfa_gunbob_custom")
 local fac, bscale
