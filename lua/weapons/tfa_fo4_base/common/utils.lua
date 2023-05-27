@@ -1,24 +1,3 @@
-
--- Copyright (c) 2018-2020 TFA Base Devs
-
--- Permission is hereby granted, free of charge, to any person obtaining a copy
--- of this software and associated documentation files (the "Software"), to deal
--- in the Software without restriction, including without limitation the rights
--- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
--- copies of the Software, and to permit persons to whom the Software is
--- furnished to do so, subject to the following conditions:
-
--- The above copyright notice and this permission notice shall be included in all
--- copies or substantial portions of the Software.
-
--- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
--- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
--- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
--- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
--- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
--- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
--- SOFTWARE.
-
 TFA.RangeFalloffLUTStep = 0.01
 TFA.RangeFalloffLUTStepInv = 1 / TFA.RangeFalloffLUTStep
 
@@ -52,22 +31,28 @@ local cv_3dmode = GetConVar("cl_tfa_scope_sensitivity_3d")
 SWEP.SensitivtyFunctions = {
 	[0] = function() return 1 end,
 	[1] = function(self, ...)
-		if self:GetStatL("Secondary.ScopeZoom") then
-			return TFA.CalculateSensitivtyScale(90 / self:GetStatL("Secondary.ScopeZoom"), self:GetStatL("Secondary.OwnerFOV"), self.Secondary_TFA.ScopeScreenScale or 0.392592592592592)
+		local zoom = self:GetStatL("Secondary.ScopeZoom")
+
+		if zoom and zoom >= 1 then
+			return TFA.CalculateSensitivtyScale(90 / zoom, self:GetStatL("Secondary.OwnerFOV"), self:GetStatL("Secondary.ScopeScreenScale"))
 		else
 			return self.SensitivtyFunctions[2](self, ...)
 		end
 	end,
 	[2] = function(self, ...)
-		if self:GetStatL("RTScopeFOV") then
-			return TFA.CalculateSensitivtyScale(self:GetStatL("RTScopeFOV"), self:GetStatL("Secondary.OwnerFOV"), self.Secondary_TFA.ScopeScreenScale or 0.392592592592592)
+		local rtfov = self:GetStatL("RTScopeFOV")
+
+		if rtfov and rtfov > 0 then
+			return TFA.CalculateSensitivtyScale(rtfov, self:GetStatL("Secondary.OwnerFOV"), self:GetStatL("Secondary.ScopeScreenScale"))
 		else
 			return self.SensitivtyFunctions[0](self, ...)
 		end
 	end,
 	[3] = function(self, ...)
-		if self:GetStatL("RTScopeFOV") then
-			return TFA.CalculateSensitivtyScale(self:GetStatL("RTScopeFOV"), self:GetStatL("Secondary.OwnerFOV"), 1)
+		local rtfov = self:GetStatL("RTScopeFOV")
+
+		if rtfov and rtfov > 0 then
+			return TFA.CalculateSensitivtyScale(rtfov, self:GetStatL("Secondary.OwnerFOV"), 1)
 		else
 			return self.SensitivtyFunctions[0](self, ...)
 		end
@@ -416,30 +401,102 @@ function SWEP:Ammo2()
 	return self:GetOwner():GetAmmoCount(self:GetSecondaryAmmoTypeC() or -1)
 end
 
+-- Returns absolute delta of change in ammo count
 function SWEP:TakePrimaryAmmo(num, pool)
-	-- Doesn't use clips
-	if self:GetStatL("Primary.ClipSize") < 0 or pool then
-		if (self:Ammo1() <= 0) then return end
-		if not self:GetOwner():IsPlayer() then return end
-		self:GetOwner():RemoveAmmo(math.min(self:Ammo1(), num), self:GetPrimaryAmmoTypeC())
+	num = math.floor(num)
+	if num == 0 then return 0 end
 
-		return
+	if num < 0 then
+		-- Doesn't use clips
+		if self:GetStatL("Primary.ClipSize") < 0 or pool then
+			if not self:GetOwner():IsPlayer() then return -num end -- assume NPCs always take all the ammo
+			return self:GetOwner():GiveAmmo(-num, self:GetPrimaryAmmoTypeC())
+		else
+			local old = self:Clip1()
+			local new = math.max(self:Clip1() - num, 0)
+			self:SetClip1(new)
+			return new - old
+		end
+	else
+		-- Doesn't use clips
+		if self:GetStatL("Primary.ClipSize") < 0 or pool then
+			if not self:GetOwner():IsPlayer() then return num end -- assume NPCs always provide all the ammo
+			local old = self:Ammo1()
+			if old <= 0 then return 0 end
+			local toRemove = math.min(old, num)
+			self:GetOwner():RemoveAmmo(toRemove, self:GetPrimaryAmmoTypeC())
+			return toRemove
+		else
+			local old = self:Clip1()
+			local new = math.max(self:Clip1() - num, 0)
+			self:SetClip1(new)
+			return old - new
+		end
 	end
-
-	self:SetClip1(math.max(self:Clip1() - num, 0))
 end
 
+-- Returns absolute delta of change in ammo count
 function SWEP:TakeSecondaryAmmo(num, pool)
-	-- Doesn't use clips
-	if self:GetStatL("Secondary.ClipSize") < 0 or pool then
-		if (self:Ammo2() <= 0) then return end
-		if not self:GetOwner():IsPlayer() then return end
-		self:GetOwner():RemoveAmmo(math.min(self:Ammo2(), num), self:GetSecondaryAmmoTypeC())
+	num = math.floor(num)
+	if num == 0 then return 0 end
 
-		return
+	if num < 0 then
+		-- Doesn't use clips
+		if self:GetStatL("Secondary.ClipSize") < 0 or pool then
+			if not self:GetOwner():IsPlayer() then return -num end -- assume NPCs always take all the ammo
+			return self:GetOwner():GiveAmmo(-num, self:GetSecondaryAmmoTypeC())
+		else
+			local old = self:Clip2()
+			local new = math.max(self:Clip2() - num, 0)
+			self:SetClip2(new)
+			return new - old
+		end
+	else
+		-- Doesn't use clips
+		if self:GetStatL("Secondary.ClipSize") < 0 or pool then
+			if not self:GetOwner():IsPlayer() then return num end -- assume NPCs always provide all the ammo
+			local old = self:Ammo2()
+			if old <= 0 then return 0 end
+			local toRemove = math.min(old, num)
+			self:GetOwner():RemoveAmmo(toRemove, self:GetSecondaryAmmoTypeC())
+			return toRemove
+		else
+			local old = self:Clip2()
+			local new = math.max(self:Clip2() - num, 0)
+			self:SetClip2(new)
+			return old - new
+		end
+	end
+end
+
+-- Inserts up to num ammo rounds into gun's primary clip
+-- negative values will unload clip back into ammo reserve (WITHOUT accounting for max ammo reserve!)
+-- Returns absolute delta of change in ammo count
+function SWEP:InsertPrimaryAmmo(num)
+	num = math.floor(num)
+	local self2 = self:GetTable()
+
+	if num > 0 then
+		num = math.min(math.max(self:GetMaxClip1() - self:Clip1(), 0), num)
+		return self2.TakePrimaryAmmo(self, -self2.TakePrimaryAmmo(self, num, true))
 	end
 
-	self:SetClip2(math.max(self:Clip2() - num, 0))
+	return self2.TakePrimaryAmmo(self, -self2.TakePrimaryAmmo(self, num, true))
+end
+
+-- Inserts up to num ammo rounds into gun's secondary clip
+-- negative values will unload clip back into ammo reserve (WITHOUT accounting for max ammo reserve!)
+-- Returns absolute delta of change in ammo count
+function SWEP:InsertSecondaryAmmo(num)
+	num = math.floor(num)
+	local self2 = self:GetTable()
+
+	if num > 0 then
+		num = math.min(math.max(self:GetMaxClip2() - self:Clip2(), 0), num)
+		return self2.TakeSecondaryAmmo(self, -self2.TakeSecondaryAmmo(self, num, true))
+	end
+
+	return self2.TakeSecondaryAmmo(self, -self2.TakeSecondaryAmmo(self, num, true))
 end
 
 function SWEP:IsEmpty1()
@@ -581,6 +638,18 @@ Purpose:  Utility
 --
 function SWEP:IsCurrentlyScoped()
 	return (self:GetIronSightsProgress() > self:GetStatL("ScopeOverlayThreshold")) and self:GetStatL("Scoped")
+end
+
+--[[
+Function Name:  IsCurrently3DScoped
+Syntax: self:IsCurrently3DScoped().
+Returns:   Is player aiming down the sights while having a RT-enabled scope equipped?
+Notes:
+Purpose:  Utility
+]]
+--
+function SWEP:IsCurrently3DScoped()
+	return (self:GetStatL("RTDrawEnabled") or self.RTCode ~= nil) and self:GetIronSights()
 end
 
 --[[
@@ -1113,21 +1182,24 @@ function SWEP:GetAimAngle()
 	elseif self:HasRecoilLUT() then
 		ang:Add(self:GetRecoilLUTAngle())
 	else
-		ang:Add(self:GetOwner():GetViewPunchAngles())
+		ang.p = ang.p + self:GetViewPunchP()
+		ang.z = ang.y + self:GetViewPunchY()
 	end
 
 	ang:Normalize()
 	return ang
 end
 
-function SWEP:EmitSoundNet(sound, ifp)
+function SWEP:EmitSoundNet(sound, ifp, shouldPause)
 	if ifp == nil then ifp = IsFirstTimePredicted() end
 	if not ifp then return end
+
+	if shouldPause == nil then shouldPause = false end
 
 	if CLIENT and sp then return end
 
 	if CLIENT or sp then
-		self:EmitSound(sound)
+		self:EmitSound(sound, nil, nil, nil, nil, shouldPause and SND_SHOULDPAUSE or SND_NOFLAGS)
 		return
 	end
 
@@ -1144,6 +1216,7 @@ function SWEP:EmitSoundNet(sound, ifp)
 	net.Start("tfaSoundEvent", true)
 	net.WriteEntity(self)
 	net.WriteString(sound)
+	net.WriteBool(shouldPause)
 	net.Send(filter)
 end
 
