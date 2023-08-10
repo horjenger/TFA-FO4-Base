@@ -1220,6 +1220,7 @@ function SWEP:EmitSoundNet(sound, ifp, shouldPause)
 	net.Send(filter)
 end
 
+
 function SWEP:StopSoundNet(sound, ifp)
 	if ifp == nil then ifp = IsFirstTimePredicted() end
 	if not ifp then return end
@@ -1246,3 +1247,5 @@ function SWEP:StopSoundNet(sound, ifp)
 	net.WriteString(sound)
 	net.Send(filter)
 end
+
+

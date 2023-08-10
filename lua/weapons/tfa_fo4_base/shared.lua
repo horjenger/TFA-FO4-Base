@@ -168,6 +168,16 @@ function SWEP:WalkBob(pos, ang, breathIntensity, walkIntensity, rate, ftv)
 	return pos, ang
 end
 
+if CLIENT then
+	function SWEP:OnCustomizationOpen()
+		self:EmitSound("TFA_FO4.MENU_ENTER")
+	end
+
+	function SWEP:OnCustomizationClose()
+		self:EmitSound("TFA_FO4.MENU_EXIT")
+	end
+end
+
 function SWEP:SprintBob(pos, ang, intensity, origPos, origAng)
 	local self2 = self:GetTable()
 	if not IsValid(self:GetOwner()) or not gunbob_intensity then return pos, ang end
@@ -252,3 +262,5 @@ function SWEP:UpdateEngineBob()
 	self2.BobScale = bscale
 	self2.SwayScale = fac
 end
+
+
