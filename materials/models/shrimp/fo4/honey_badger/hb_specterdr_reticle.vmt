@@ -1,0 +1,6 @@
+"UnlitGeneric"
+	
+{
+	"$basetexture"	"models/shrimp/fo4/honey_badger/ReticleSpecter"
+	"$translucent"					"1"
+}
