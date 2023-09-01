@@ -5,7 +5,7 @@ Included required textures and modles for FO4 SWEPS.
 
 # To do
  * Mag drop system
- * Custom customization menu
+ * Custom UI menu
 
 ## IMPORTANT FOR UPDATES
 ![alt text](https://i.imgur.com/wBAscZ9.png) 
