@@ -223,6 +223,53 @@ function SWEP:SprintBob(pos, ang, intensity, origPos, origAng)
 	return pos, ang
 end
 
+	--mag drop system
+
+SWEP.MagImpactSounds = {
+	"physics/metal/weapon_impact_hard1.wav"
+}
+SWEP.MagModel = "models/props_junk/CinderBlock01a.mdl"
+SWEP.MagBodygroups = "000"
+SWEP.MagSkin = 0
+SWEP.MagDropSrcForward = 0
+SWEP.MagDropSrcRight = 0
+SWEP.MagDropSrcUp = 0
+SWEP.MagDropAng = Angle(0, 0, 0)
+SWEP.MagYeetVelocityForward = 0
+SWEP.MagYeetVelocityRight = 0
+SWEP.MagYeetVelocityUp = 0
+SWEP.MagAngleVelocity = Vector(math.random(-750, 750), math.random(-750, 750), math.random(-750, 750))
+SWEP.MagRemovalTimer = 60
+
+function SWEP:TFAMagDrop()
+	if SERVER then
+		if not self.MagModel then return end
+
+		local ply = self:GetOwner()
+		local mag = ents.Create("tfa_droppedmag")
+
+		if mag then
+			mag.Model = self.MagModel
+			mag.Bodygroups = self.MagBodygroups
+
+			mag.TextureGroup = self.MagSkin
+			mag.ImpactSounds = self.MagImpactSounds
+			mag.RemovalTimer = self.MagRemovalTimer
+			mag:SetPos(ply:GetShootPos() + ply:EyeAngles():Forward() * self.MagDropSrcForward + ply:EyeAngles():Right() * self.MagDropSrcRight + ply:EyeAngles():Up() * self.MagDropSrcUp)
+			mag:SetAngles(ply:EyeAngles() + self.MagDropAng)
+			mag:SetOwner(ply)
+			mag:Spawn()
+
+			local phys = mag:GetPhysicsObject()
+
+			if IsValid(phys) then
+				phys:SetVelocity(ply:GetVelocity() + ply:GetAimVector() + ply:EyeAngles():Forward() * self.MagYeetVelocityForward + ply:EyeAngles():Right() * self.MagYeetVelocityRight + ply:EyeAngles():Up() * self.MagYeetVelocityUp)
+				phys:AddAngleVelocity(self.MagAngleVelocity)
+			end
+		end
+	end
+end
+
 	--viewmodel pullback remove
 SWEP.ViewModelPunchPitchMultiplier = 0
 SWEP.ViewModelPunchPitchMultiplier_IronSights = 0
