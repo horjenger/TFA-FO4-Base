@@ -24,5 +24,6 @@ AddCSLuaFile("shared.lua")
 include("shared.lua")
 include("common/utils.lua")
 AddCSLuaFile("common/utils.lua")
+include("client/bobcode.lua")
 
 //Leonj is gay
