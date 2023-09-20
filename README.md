@@ -1,7 +1,7 @@
 # TFA FO4 Base
  It's do nothing, but you need it.
 
-Included required textures and modles for FO4 SWEPS.
+Included required files (models, textures, lua) for FO4 SWEPS.
 
 # To do
  * Custom UI menu
